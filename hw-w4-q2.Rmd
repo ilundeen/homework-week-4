@@ -1,0 +1,306 @@
+---
+title: "HW-W4-Problem2"
+author: "Ingrid Lundeen"
+date: "October 1, 2016"
+output: html_document
+---
+##Load in data
+###slight change to your inital code - I'm using the read.csv function straight from the file instead since knitting is meant to be automated and not something you need to interact with so i'm sending it straight to the appropriate directory
+```{r}
+
+d <- read.csv("/Users/Ingrid/Desktop/zombies.csv",sep=",", header=TRUE)
+
+```
+
+
+##[1] Calculate the population mean and standard deviation for each quantitative random variable (height, weight, age, number of zombies killed, and years of education). NOTE: You will not want to use the built in var() and sd() commands as these are for samples.
+
+```{r}
+mean(d$height)
+pop_sd<-function(x) {
+  sqrt(sum((x-mean(x))^2)/(length(x)))
+}
+pop_sd(d$height)
+mean(d$weight)
+pop_sd(d$weight)
+mean(d$age)
+pop_sd(d$age)
+mean(d$zombies_killed)
+pop_sd(d$zombies_killed)
+mean(d$years_of_education)
+pop_sd(d$years_of_education)
+
+```
+
+
+##[2] Use ggplot and make boxplots of each of these variable by gender.
+```{r}
+library(ggplot2)
+ggplot(d, aes(x=gender, y=height, fill=gender))+
+  geom_boxplot()
+ggplot(d, aes(x=gender, y=weight, color=gender))+
+  geom_boxplot()
+ggplot(d, aes(x=gender, y=age, fill=gender))+
+  geom_boxplot()+
+  theme(legend.position="bottom")
+ggplot(d, aes(x=gender, y=zombies_killed, color=gender))+
+  geom_boxplot()+
+  theme(legend.position="none")+
+  labs(title="Zombies Killed by Gender", y="Zombies Killed", x="Gender")
+ggplot(d, aes(x=gender, y=years_of_education, fill=gender))+
+  geom_boxplot()+
+  theme(legend.position="none")+
+  theme_minimal()+
+  labs(title="Years of Education by Gender", y="Years of Education")
+```
+
+
+### Sorry for messing around with the boxplots ... it's difficult not to with ggplot - so many options. :)
+
+##[3] Use ggplot and make a scatterplots of height and weight in relation to age. Do these variables seem to be related? In what way?
+```{r}
+ggplot(d, aes(x=height, y=age, col=gender))+
+  geom_point()+
+  labs(title="Height vs Age")
+ggplot(d, aes(x=weight, y=age, col=gender))+
+  geom_point()+
+  labs(title="Weight vs Age")
+```
+
+
+
+#### again, sorry I'm messing around with ggplot but this seems like the class to learn how to use ggplot in so I'm sure you don't mind too much
+##Both height and weight positively correlated with age. Height seems to be more correlated with age than weight - a linear relationship between the two variables. 
+##Lets check:
+```{r}
+
+ggplot(d, aes(x=weight, y=height))+
+  geom_point(aes(color=age))+
+  labs(title="Weight vs Height")
+
+```
+ 
+
+
+##[4] Using histograms and Q-Q plots, check whether the quantitative variables seem to be drawn from a normal distribution. Which seem to be and which do not (hint: not all are drawn from the normal distribution)? For those that are not, can you determine what common distribution they are drawn from?
+
+```{r}
+hist(d$height, col="forest green")
+qqnorm(d$height, main="Normal QQ plot of Heights")
+qqline(d$height, col="red")
+
+ggplot(data=d, aes(d$weight)) +
+  geom_histogram(aes(fill=..count..))+
+  labs(x="Weight", y="Count")
+qqnorm(d$weight, main="Normal QQ Plot of Weights")
+qqline(d$weight, col="blue")  
+
+ggplot(data=d, aes(d$age))+
+  geom_histogram(col="red", aes(fill=..count..))+
+  scale_fill_gradient("Count", low="green", high= "red")+
+  labs(x="Age", y="Count")
+qqnorm(d$age, main="Normal QQ Plot of Ages")
+qqline(d$age, col="orange")
+
+qplot(zombies_killed, data=d, geom="histogram",binwidth=1, fill=..count.., xlab="Zombies Killed", ylab="Count")
+qqnorm(d$zombies_killed, main="Normal QQ Plot of Zombies Killed")
+qqline(d$zombies_killed, col="purple")
+
+ggplot(data=d, aes(d$years_of_education))+
+  geom_histogram(aes(fill=..count..))+
+  labs(x="Years of Education")
+qqnorm(d$years_of_education, main="Normal QQ Plot of Years of Education")
+qqline(d$years_of_education, col="black")
+
+
+```
+###the QQ plot of Zombies killed and years of education are not normally distrubted. Poisson distributed
+
+
+
+##[5] Now use the sample() function to sample ONE subset of 30 zombies (without replacement) from this population and calculate the mean and sample standard deviation for each variable. Also estimate the standard error for each variable and construct the 95% confidence interval for each mean. Note that for the variables that are not drawn from the normal distribution, you will need to base your estimate of the CIs on some different distribution.
+
+```{r}
+
+subset<-d[sample(1:nrow(d), 30, replace=FALSE),]
+
+mean(subset$height)
+sd(subset$height)
+sem<-function(x){
+  sd(x)/sqrt(length(x))
+}
+sem(subset$height)
+###function for confidence intervals of normal distribution
+ninetyfive<-function(x){
+  c(mean(x)-2*sem(x),mean(x)+2*sem(x))
+}
+###prefer one below and will use it from now on.
+ninetyfive.norm<-function(x){
+  c(mean(x)-qnorm(1-0.05/2)*sem(x),mean(x)+qnorm(1-0.05/2)*sem(x))
+}
+ninetyfive.norm(subset$height)
+
+mean(subset$weight)
+sd(subset$weight)
+sem(subset$weight)
+
+ninetyfive.norm(subset$weight)
+
+mean(subset$age)
+sd(subset$age)
+sem(subset$age)
+ninetyfive.norm(subset$age)
+
+###writing function for confidence interval that doesnt have a normal distribution
+###t-distribution
+ninetyfive_off<-function(x){
+  c(mean(x)-(qt(0.975,df=length(x)-1)*sem(x)), mean(x)+(qt(0.975,df=length(x)-1)*sem(x)))
+}
+###pois distribution
+ninetyfive.pois<-function(x){
+  c(mean(x)-qpois(1-0.05/2, lambda=mean(x))*sem(x), mean(x)+qpois(1-0.05/2,lambda=mean(x))*sem(x))
+}
+mean(subset$zombies_killed)
+sd(subset$zombies_killed)
+sem(subset$zombies_killed)
+
+ninetyfive.pois(subset$zombies_killed)
+
+
+mean(subset$years_of_education)
+sd(subset$years_of_education)
+sem(subset$years_of_education)
+
+ninetyfive.pois(subset$years_of_education)
+
+
+```
+
+
+##[6] Now drawn 99 more random samples of 30 zombies out and calculate the mean for each of the these samples. Together with the first sample you drew out, you now have a set of 100 means for each variable (each based on 30 observations), which constitutes a sampling distribution for each variable. What are the means and standard deviations of this distribution for each variable? How do the standard deviations compare to the standard errors estimated in [5]? What do these sampling distributions look like? Are they normally distributed? What about for those variables that you concluded were not originally drawn from a normal distribution?
+
+```{r}
+k<-99
+n<-30
+s<-NULL
+for(i in 1:k){
+  s[[i]]<-d[sample(1:nrow(d), n, replace=FALSE), ]
+}
+m<-NULL
+for(i in 1:k){
+  m[i]<-mean(s[[i]]$height)
+}
+m
+h_mean<-c(m,mean(subset$height))
+h_mean
+
+msd<-NULL
+for(i in 1:k){
+  msd[i]<-sd(s[[i]]$height)
+}
+h_msd<-c(msd,sd(subset$height))
+qqnorm(h_mean)
+hist(h_mean)
+mean(h_mean)
+sd(h_msd)
+
+```
+### the standard deviation is less than the previously calculated standard error 
+### based on the qq plot and histogram, the distribution of this looks fairly normal
+
+
+```{r}
+l<-NULL
+for(i in 1:k){
+  l[i]<-mean(s[[i]]$weight)
+}
+w_mean<-c(l,mean(subset$weight))
+w_mean
+
+wsd<-NULL
+for(i in 1:k){
+  wsd[i]<-sd(s[[i]]$weight)
+}
+w_wsd<-c(wsd,sd(subset$weight))
+qqnorm(w_mean)
+hist(w_mean)
+mean(w_mean)
+sd(w_wsd)
+
+```
+### sd calculated here is smaller than the earlier calculated standard error
+### based on qqplot and histogram, the distribution looks normal  
+
+```{r}
+a<-NULL
+for (i in 1:k){
+  a[i]<-mean(s[[i]]$age)
+}
+a_mean<-c(a,mean(subset$age))
+a_mean
+
+asd<-NULL
+for(i in 1:k){
+  asd[i]<-sd(s[[i]]$age)
+}
+a_asd<-c(asd,sd(subset$age))
+qqnorm(a_mean)
+hist(a_mean)
+mean(a_mean)
+sd(a_asd)
+
+```
+###sd calculated here is smaller than previously calculated standard error
+### based on qq plot and histogram - appears fairly normally distributed
+
+```{r}
+z<-NULL
+for (i in 1:k){
+  z[i]<-mean(s[[i]]$zombies_killed)
+}
+z_mean<-c(z,mean(subset$zombies_killed))
+z_mean
+
+zsd<-NULL
+for(i in 1:k){
+  zsd[i]<-sd(s[[i]]$zombies_killed)
+}
+z_sd<-c(zsd,sd(subset$zombies_killed))
+qqnorm(z_mean)
+hist(z_mean)
+mean(z_mean)
+sd(zsd)
+
+
+```
+### sd is smaller than the previously calculated standard error
+### basd on qqplot and histogram, looks normally distributed - this was not the case in the previous example - with repeated sampling becomes more normally distributed
+
+
+```{r}
+
+y<-NULL
+for (i in 1:k){
+  y[i]<-mean(s[[i]]$years_of_education)
+}
+y_mean<-c(y,mean(subset$years_of_education))
+y_mean
+
+ysd<-NULL
+for(i in 1:k){
+  ysd[i]<-sd(s[[i]]$years_of_education)
+}
+y_sd<-c(ysd,sd(subset$years_of_education))
+qqnorm(y_mean)
+hist(y_mean)
+mean(y_mean)
+sd(y_sd)
+
+
+
+```
+### standard deviation is smaller than calculated standard error from [5] 
+### based on qqplot and histogram this looks like a normal distribution - unlike what it was before - with an increase in sampling comes increased normality of the distribution
+
+
+
